@@ -1,0 +1,50 @@
+
+**// © HPotter**
+**TradeLong(Level, Take, Stop, ID, symbol, balance) =>**
+**&#xA0;   strategy.cancel_all()**
+**&#xA0;   msg = ROI.MsgDoLongMKT(ID, symbol,  balance)&#x20;**
+**&#xA0;   strategy.entry("Long", strategy.long, stop = Level, alert_message = msg)&#x20;**
+**&#xA0;   msg := ROI.MsgDoLongMKT(ID, symbol, 0)&#x20;**
+**&#xA0;   strategy.exit('Exit', 'Long', limit = Level+Take, stop = Level - Stop, alert_message = msg)&#x20;**
+
+**TradeShort(Level, Take, Stop, ID, symbol,balance) =>&#x20;**
+**&#xA0;   strategy.cancel_all()**
+**&#xA0;   msg = ROI.MsgDoShortMKT(ID, symbol, balance)**
+**&#xA0;   strategy.entry("Short", strategy.short, stop = Level, alert_message = msg)**
+**&#xA0;   msg := ROI.MsgDoShortMKT(ID, symbol, 0)**
+**&#xA0;   strategy.exit('Exit', 'Short', limit = Level-Take, stop = Level + Stop, alert_message = msg)**
+**//@version=5**
+**strategy("Iron Support Resistance Automat", shorttitle="Iron SRA", overlay = true, calc_on_order_fills = true)**
+**import HPotter/RouterOrdersIron/1 as ROI**
+**symbol = input.string("BTC")**
+**ID = input.string("")**
+**balance = input.float(20, minval=12)**
+**TakePercent= input.float(1, minval=0.00001)**
+**StopPercent= input.float(1, minval=0.00001)**
+**LookBack = input.int(10)**
+**PointBack = input.int(5)**
+**ShowBackTest = input.bool(false)**
+
+**var Green = color.new(color.green, 0)**
+**var Red = color.new(color.red, 0)**
+**var Blue =  color.new(color.blue, 0)**
+**var Work = ShowBackTest**
+**if barstate.islastconfirmedhistory or barstate.isrealtime**
+**&#xA0;   Work := true**
+
+**LLS = ta.lowest(hlc3, LookBack)**
+**Level = LLS[PointBack]**
+
+**var line lineLevel = na&#x20;**
+**clr = close > Level ? Red  : Green&#x20;**
+**line.delete(lineLevel)**
+**lineLevel := line.new(bar_index-LookBack,  LLS[LookBack], bar_index,  Level,  color = clr)**
+
+**Take = Level \* TakePercent / 100&#x20;**
+**Stop = Level \* StopPercent / 100&#x20;**
+**if Work and strategy.position_size == 0**
+**&#xA0;   if close < Level&#x20;**
+**&#xA0;       TradeLong(Level, Take, Stop, ID, symbol, balance)**
+**&#xA0;   if close > Level&#x20;**
+**&#xA0;       TradeShort(Level, Take, Stop, ID, symbol, balance)**
+**barcolor(strategy.position_size < 0 ? Red : strategy.position_size > 0 ? Green: Blue)**

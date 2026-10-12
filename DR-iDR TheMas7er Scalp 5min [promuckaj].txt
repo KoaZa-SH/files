@@ -1,0 +1,878 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © promuckaj
+
+//@version=5
+
+indicator("DR/iDR TheMas7er scalp 5min [promuckaj]", shorttitle="DR/iDR TheMas7er scalp 5min [promuckaj]", overlay=true, max_boxes_count = 500, max_labels_count = 500, max_lines_count = 500)
+//v1.7
+
+showMain = input(true,"Show main DR/iDR", group = "DR/iDR v1.7 by Promuckaj")
+TimeMain = input.session("0930-1030", "DR time range:", group = "DR/iDR v1.7 by Promuckaj", tooltip = "By default it is set to be used on 5min chart, so it means it is set to obtain last candle on 10:25. Consider this if you change time frame.")
+
+showEarly = input(true,"Show oDR/oiDR", group = "DR/iDR v1.7 by Promuckaj")
+TimeEarly = input.session("0300-0400", "oDR time range:", group = "DR/iDR v1.7 by Promuckaj",tooltip = "By default it is set to be used on 5min chart, so it means it is set to obtain last candle on 03:55. Consider this if you change time frame.")
+
+showADR = input(true,"Show aDR/aiDR", group = "DR/iDR v1.7 by Promuckaj")
+TimeADR = input.session("1930-2030", "aDR time range:", group = "DR/iDR v1.7 by Promuckaj",tooltip = "By default it is set to be used on 5min chart, so it means it is set to obtain last candle on 08:25 pm. Consider this if you change time frame.")
+
+
+showExtLines = input(true,"Show extended lines on session", group = "Customizations", tooltip = "Extended lines to the right will be visible till next DR sesion")
+showDRlabels = input(true,"Show DR labels", group = "Customizations")
+showDRtexts = input(true,"Show DR texts", group = "Customizations")
+mainColor = input.color(color.green,"High DR Color:", inline = "Main lines:", group = "Customizations")
+mainLebelTextCol = input.color(color.white,"Label Text color:", inline = "Main lines:", group = "Customizations")
+mainExtLinesStyle = input.string("Dashed","Ext. Style:", options=["Solid", "Dashed", "Dotted"],inline = "exMain lines:", group = "Customizations")
+mainExtLinesWidth = input.int(1,"Width:",inline = "exMain lines:", group = "Customizations")
+lmainColor = input.color(color.red,"Low DR Color:", inline = "lMain lines:", group = "Customizations")
+lmainLebelTextCol = input.color(color.white,"Label Text color:", inline = "lMain lines:", group = "Customizations")
+lmainExtLinesStyle = input.string("Dashed","Ext. Style:", options=["Solid", "Dashed", "Dotted"],inline = "lexMain lines:", group = "Customizations")
+lmainExtLinesWidth = input.int(1,"Width:",inline = "lexMain lines:", group = "Customizations")
+BoxiDR = input(false, "Apply box on iDR range instead on DR", group = "Customizations")
+BoxColor = input(color.rgb(0, 187, 212, 75),"Color of box", inline = "box", group = "Customizations")
+BoxColorDir = input(false, "Color box according to direction", inline = "box", group = "Customizations", tooltip = "This option will auto color the box according to open/close price of the range (green/red).")
+showFibo = input(true,"Show fibo levels according to DR (0.5 step)", tooltip = "It will be visible till next DR session",group = "Fibonacci levels")
+useDRforFibo = input(false, "Apply fibo levels to DR instead of iDR range")
+FiboColor = input(color.rgb(196, 196, 196),"Fibo lines Color:",inline = "Fibo lines:")
+FiboLineStyle = input.string("Solid","Style:", options=["Solid", "Dashed", "Dotted"],inline = "Fibo lines:")
+FiboLineWidth = input.int(1,"Width:",inline = "Fibo lines:")
+showBreaches = input(true,"Show labels for breaches of DR", group = "Breaches")
+BreachThreshold = input.float(0.0, "Threshold for breaches", group = "Breaches", tooltip = "This option will add threshold in % for breach of DR. It will affect breach alerts to.")
+BreachLabelColor1 = input.color(color.lime,"Colors:", inline = "breach color")
+BreachLabelColor2 = input.color(color.rgb(255, 0, 0),"", inline = "breach color")
+UseWick = input(false,"Use wick of candles for breaches the DR to")
+
+
+//Check TF for default values of ranges
+//DR
+if timeframe.period == "5" and TimeMain == "0930-1030"
+    TimeMain := "0930-1025"
+if timeframe.period == "1" and TimeMain == "0930-1030"
+    TimeMain := "0930-1029"
+if timeframe.period == "2" and TimeMain == "0930-1030"
+    TimeMain := "0930-1028"
+if timeframe.period == "3" and TimeMain == "0930-1030"
+    TimeMain := "0930-1027"
+if timeframe.period == "4" and TimeMain == "0930-1030"
+    TimeMain := "0930-1026"
+if timeframe.period == "10" and TimeMain == "0930-1030"
+    TimeMain := "0930-1020"
+if timeframe.period == "15" and TimeMain == "0930-1030"
+    TimeMain := "0930-1015"
+if timeframe.period == "30" and TimeMain == "0930-1030"
+    TimeMain := "0930-1000"
+//oDR
+if timeframe.period == "5" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0355"
+if timeframe.period == "2" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0358"
+if timeframe.period == "3" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0357"
+if timeframe.period == "4" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0356"
+if timeframe.period == "1" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0359"
+if timeframe.period == "10" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0350"
+if timeframe.period == "15" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0345"
+if timeframe.period == "30" and TimeEarly == "0300-0400"
+    TimeEarly := "0300-0330"
+//aDR
+if timeframe.period == "5" and TimeADR == "1930-2030"
+    TimeADR := "1930-2025"
+if timeframe.period == "1" and TimeADR == "1930-2030"
+    TimeADR := "1930-2029"
+if timeframe.period == "2" and TimeADR == "1930-2030"
+    TimeADR := "1930-2028"
+if timeframe.period == "3" and TimeADR == "1930-2030"
+    TimeADR := "1930-2027"
+if timeframe.period == "4" and TimeADR == "1930-2030"
+    TimeADR := "1930-2026"
+if timeframe.period == "10" and TimeADR == "1930-2030"
+    TimeADR := "1930-2020"
+if timeframe.period == "15" and TimeADR == "1930-2030"
+    TimeADR := "1930-2015"
+if timeframe.period == "30" and TimeADR =="1930-2030"
+    TimeADR := "1930-2000"
+
+
+
+
+ny = TimeMain + ":1234567"
+nye = TimeEarly + ":1234567"
+nya = TimeADR + ":1234567"
+
+mainLineS = line.style_solid
+if mainExtLinesStyle == "Solid"
+    mainLineS := line.style_solid
+if mainExtLinesStyle == "Dashed"
+    mainLineS := line.style_dashed
+if mainExtLinesStyle == "Dotted"
+    mainLineS := line.style_dotted
+lmainLineS = line.style_solid
+if lmainExtLinesStyle == "Solid"
+    lmainLineS := line.style_solid
+if lmainExtLinesStyle == "Dashed"
+    lmainLineS := line.style_dashed
+if lmainExtLinesStyle == "Dotted"
+    lmainLineS := line.style_dotted
+fibLineS = line.style_solid
+if FiboLineStyle == "Solid"
+    fibLineS := line.style_solid
+if FiboLineStyle == "Dashed"
+    fibLineS := line.style_dashed
+if FiboLineStyle == "Dotted"
+    fibLineS := line.style_dotted
+
+is_newbar(sess) =>
+    t = time("D", sess, "America/New_York")
+    na(t[1]) and not na(t) or t[1] < t
+
+is_session(sess) =>
+    not na(time(timeframe.period, sess, "America/New_York"))
+
+nyNewbar = is_newbar(ny)
+nySession = is_session(ny)
+nyeSession = is_session(nye)
+nyaSession = is_session(nya)
+
+var line DRhighE = na
+var line DRlowE = na
+var line IDRhighE = na
+var line IDRlowE = na
+
+var line eDRhighE = na
+var line eDRlowE = na
+var line eIDRhighE = na
+var line eIDRlowE = na
+
+var line Fibo05 = na
+var line Fibo15 = na
+var line Fibo2 = na
+var line Fibo25 = na
+var line Fibo3 = na
+var line Fibo35 = na
+var line Fibo4 = na
+var line Fibo45 = na
+var line Fibo5 = na
+var line Fibo55 = na
+var line Fibo6 = na
+var line FiboM05 = na
+var line FiboM1 = na
+var line FiboM15 = na
+var line FiboM2 = na
+var line FiboM25 = na
+var line FiboM3 = na
+var line FiboM35 = na
+var line FiboM4 = na
+var line FiboM45 = na
+var line FiboM5 = na
+var line FiboM55 = na
+var line FiboM6 = na
+var label Fibo05T = na
+var label Fibo15T = na
+var label Fibo2T = na
+var label Fibo25T = na
+var label Fibo3T = na
+var label Fibo35T = na
+var label Fibo4T = na
+var label Fibo45T = na
+var label Fibo5T = na
+var label Fibo55T = na
+var label Fibo6T = na
+var label FiboM05T = na
+var label FiboM1T = na
+var label FiboM15T = na
+var label FiboM2T = na
+var label FiboM25T = na
+var label FiboM3T = na
+var label FiboM35T = na
+var label FiboM4T = na
+var label FiboM45T = na
+var label FiboM5T = na
+var label FiboM55T = na
+var label FiboM6T = na
+
+var box drBox = na
+
+startBar = false
+endBar = false
+DRhighText = ""
+DRlowText = ""
+iDRhighText = ""
+iDRlowText = ""
+DRdirection = "UP"
+DRrangeL = "DR Range"
+iDRrangeL = "iDR Range"
+DRdirectionL = "DR Direction"
+DRcloseL = "DR close"
+DRopenL = "DR open"
+DRhighL = "DR high"
+DRlowL = "DR low"
+iDRhighL = "iDR high"
+iDRlowL = "iDR low"
+
+
+//Panel info
+showPanelInfo = input(true,"Show info panel",group="Panel with DR informations")
+showPanelRange = input(true,"Range", inline = "panel")
+showPanelDir = input(true,"Direction", inline = "panel")
+showPanelOC = input(true,"Open/Close", inline = "panel")
+showPanelHL = input(true,"High/Low", inline = "panel")
+showPanelBreach = input(true,"Breaches", inline = "panel")
+PanelColor1 = input.color(color.rgb(0, 0, 0),"Panel Color: ",inline="panel color")
+PanelColor2 = input.color(color.silver,"",inline="panel color")
+TextColor1 = input.color(color.rgb(255, 255, 255),"Text Color: ",inline="text color")
+TextColor2 = input.color(color.rgb(0, 0, 0),"",inline="text color")
+TablePos = input.string(title="Table Location", defval="Bottom Right",options=["Top Right",  "Middle Right",  "Bottom Right", 
+              "Top Center", "Middle Center", "Bottom Center", 
+              "Top Left",   "Middle Left",   "Bottom Left"])
+TableSize = input.string(title="Text Size", defval="Small",options=["Auto", "Normal", "Small", "Tiny"])
+
+_tablePos= TablePos== "Top Right"    ? position.top_right: 
+           TablePos== "Middle Right" ? position.middle_right:  
+           TablePos== "Bottom Right" ? position.bottom_right: 
+           TablePos== "Top Center"   ? position.top_center: 
+           TablePos== "Middle Center"? position.middle_center:
+           TablePos== "Bottom Center"? position.bottom_center:
+           TablePos== "Top Left"     ? position.top_left: 
+           TablePos== "Middle Left"  ? position.middle_left:position.bottom_left
+panel_Pos= TablePos== "Top Right"    ? position.top_right: 
+           TablePos== "Middle Right" ? position.middle_right:  
+           TablePos== "Bottom Right" ? position.bottom_right: 
+           TablePos== "Top Center"   ? position.top_center: 
+           TablePos== "Middle Center"? position.middle_center:
+           TablePos== "Bottom Center"? position.bottom_center:
+           TablePos== "Top Left"     ? position.top_left: 
+           TablePos== "Middle Left"  ? position.middle_left:position.bottom_left
+panel_size= TableSize == "Auto" ? size.auto: TableSize == "Normal"? size.normal: 
+       TableSize == "Small"? size.small: size.tiny
+var table t = table.new(_tablePos, 2, 11, border_width = 1)
+
+//Alerts settings
+BreachAlert = input(true,"Sent alerts for breaches of DR", group = "Alerts settings", tooltip = "This will create alert message for every breaches of DR, it will include close price. All alert messages are developed as function call, so you just need to activate it as 'Any alert() function call'.")
+BreachBackAlert = input(true,"Sent alerts for breaches back to DR", tooltip = "This will create alert message for every breaches back to DR, it will include close price.")
+DRAlert = input(true, "Sent alert of DR range", inline = "dralert", tooltip = "This will sent all the data of DR range and values once DR is printed on the chart.")
+FiboAlerts = input(true, "+ fibo data", inline = "dralert", tooltip = " DR range alert include all values of DR range, once it is printed on the chart, but if this option is activated then fibo levels will be included in alert to.")
+
+//DR Calc
+if barstate.isconfirmed
+    if nyeSession[1] == false and nyeSession and showEarly and nySession == false and nyaSession == false
+        startBar := true
+    else
+        if nyeSession == false and nyeSession[1] and showEarly and nySession == false and nyaSession == false
+            endBar := true
+            DRhighText := "oDR high"
+            DRlowText := "oDR low"
+            iDRhighText := "oiDR high"
+            iDRlowText := "oiDR low"
+            DRrangeL := "oDR range"
+            iDRrangeL := "oiDR Range"
+            DRdirectionL := "oDR Direction"
+            DRcloseL := "oDR close"
+            DRopenL := "oDR open"
+            DRhighL := "oDR high"
+            DRlowL := "oDR low"
+            iDRhighL := "oiDR high"
+            iDRlowL := "oiDR low"
+    if nySession[1] == false and nySession and showMain and nyeSession == false and nyaSession == false
+        startBar := true
+    else
+        if nySession == false and nySession[1] and showMain and nyeSession == false and nyaSession == false
+            endBar := true
+            DRhighText := "DR high"
+            DRlowText := "DR low"
+            iDRhighText := "iDR high"
+            iDRlowText := "iDR low"
+    if nyaSession[1] == false and nyaSession and showADR and nySession == false and nyeSession == false
+        startBar := true
+    else
+        if nyaSession == false and nyaSession[1] and showADR and nySession == false and nyeSession == false
+            endBar := true
+            DRhighText := "aDR high"
+            DRlowText := "aDR low"
+            iDRhighText := "aiDR high"
+            iDRlowText := "aiDR low"
+            DRrangeL := "aDR range"
+            iDRrangeL := "aiDR Range"
+            DRdirectionL := "aDR Direction"
+            DRcloseL := "aDR close"
+            DRopenL := "aDR open"
+            DRhighL := "aDR high"
+            DRlowL := "aDR low"
+            iDRhighL := "aiDR high"
+            iDRlowL := "aiDR low"
+
+
+FirstBar = ta.barssince(startBar)
+LastBar = ta.barssince(endBar)+1
+
+var label StartingSessionLabel = na
+
+if startBar
+    StartingSessionLabel := label.new(bar_index,high,text='',color=color.lime,style=label.style_circle,size = size.auto)
+
+if barstate.isconfirmed and endBar
+    DRopen = open[FirstBar]
+    DRclose = close
+    HH = high
+    LL = low
+    HHidr = close
+    LLidr = open
+    if close > open
+        HHidr := close
+        LLidr := open
+    else
+        HHidr := open
+        LLidr := close
+    for i = 1 to FirstBar
+        if high[i] > HH
+            HH := high[i]
+        if low[i] < LL
+            LL := low[i]
+        if close[i] > open[i] and close[i] > HHidr
+            HHidr := close[i]
+        if close[i] < open[i] and open[i] > HHidr
+            HHidr := open[i]
+        if close[i] > open[i] and open[i] < LLidr
+            LLidr := open[i]
+        if close[i] < open[i] and close[i] < LLidr
+            LLidr := close[i]
+        
+    DRhigh = line.new(bar_index[FirstBar], HH,bar_index,HH,color=mainColor,style=line.style_solid,width=mainExtLinesWidth)
+    DRlow = line.new(bar_index[FirstBar], LL,bar_index,LL,color=lmainColor,style=line.style_solid,width=lmainExtLinesWidth)
+    IDRhigh = line.new(bar_index[FirstBar], HHidr,bar_index,HHidr,color=mainColor,style=line.style_dotted,width=mainExtLinesWidth)
+    IDRlow = line.new(bar_index[FirstBar], LLidr,bar_index,LLidr,color=lmainColor,style=line.style_dotted,width=lmainExtLinesWidth)
+    if showDRlabels
+        DRhighLabel = label.new(bar_index[FirstBar],HH,text=DRhighText,size=size.small,color=mainColor,style=label.style_label_right,textcolor=mainLebelTextCol)
+        DRlowLabel = label.new(bar_index[FirstBar],LL,text=DRlowText,size=size.small,color=lmainColor,style=label.style_label_right,textcolor=lmainLebelTextCol)
+    if showDRlabels == false and showDRtexts
+        DRhighLabelT = label.new(bar_index[FirstBar-5],HH,text=DRhighText,size=size.small,color=mainColor,style=label.style_none,textcolor=mainColor)
+        DRlowLabelT = label.new(bar_index[FirstBar-5],LL,text=DRlowText,size=size.small,color=lmainColor,style=label.style_none,textcolor=lmainColor)
+    if showDRtexts
+        IDRhighLabel = label.new(bar_index[FirstBar+3],HHidr,text=iDRhighText,size=size.small,color=color.rgb(61, 61, 61),style=label.style_none,textcolor=mainColor)
+        IDRlowLabel = label.new(bar_index[FirstBar+3],LLidr,text=iDRlowText,size=size.small,color=color.rgb(61, 61, 61),style=label.style_none,textcolor=lmainColor)
+    
+    if showExtLines
+        DRhighE := line.new(bar_index[1], HH,bar_index,HH,extend = extend.right,color=mainColor,style=mainLineS,width=mainExtLinesWidth)
+        DRlowE := line.new(bar_index[1], LL,bar_index,LL,extend = extend.right,color=lmainColor,style=lmainLineS,width=lmainExtLinesWidth)
+        IDRhighE := line.new(bar_index[1], HHidr,bar_index,HHidr,extend = extend.right,color=mainColor,style=line.style_dotted,width=mainExtLinesWidth)
+        IDRlowE := line.new(bar_index[1], LLidr,bar_index,LLidr,extend = extend.right,color=lmainColor,style=line.style_dotted,width=lmainExtLinesWidth)
+    
+    HfiboVal = HHidr
+    LfiboVal = LLidr
+    if useDRforFibo
+        HfiboVal := HH
+        LfiboVal := LL
+    if showFibo
+        Fibo05 := line.new(bar_index[1], (HfiboVal+LfiboVal)/2,bar_index,(HfiboVal+LfiboVal)/2,extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo15 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*0.5),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*0.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo2 := line.new(bar_index[1], HfiboVal + (HfiboVal-LfiboVal),bar_index,HfiboVal + (HfiboVal-LfiboVal),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo25 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*1.5),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*1.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo3 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*2),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*2),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo35 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*2.5),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*2.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo4 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*3),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*3),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo45 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*3.5),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*3.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo5 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*4),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*4),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo55 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*4.5),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*4.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        Fibo6 := line.new(bar_index[1], HfiboVal + ((HfiboVal-LfiboVal)*5),bar_index,HfiboVal + ((HfiboVal-LfiboVal)*5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+
+        FiboM05 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*0.5),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*0.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM1 := line.new(bar_index[1], LfiboVal - (HfiboVal-LfiboVal),bar_index,LfiboVal - (HfiboVal-LfiboVal),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM15 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*1.5),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*1.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM2 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*2),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*2),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM25 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*2.5),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*2.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM3 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*3),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*3),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM35 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*3.5),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*3.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM4 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*4),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*4),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM45 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*4.5),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*4.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM5 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*5),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM55 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*5.5),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*5.5),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+        FiboM6 := line.new(bar_index[1], LfiboVal - ((HfiboVal-LfiboVal)*6),bar_index,LfiboVal - ((HfiboVal-LfiboVal)*6),extend = extend.right,color=FiboColor,style=fibLineS,width=FiboLineWidth)
+
+        fTextPos = bar_index[1]
+        fTextXloc = xloc.bar_index
+        //if FiboPosRight
+        //    fTextPos := time + 197 * (time - time[1])
+        //    fTextXloc := xloc.bar_time
+        
+        Fibo05T := label.new(fTextPos, (HfiboVal+LfiboVal)/2, "0.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo15T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*0.5), "1.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo2T := label.new(fTextPos, HfiboVal + (HfiboVal-LfiboVal), "2", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo25T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*1.5), "2.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo3T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*2), "3", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo35T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*2.5), "3.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo4T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*3), "4", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo45T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*3.5), "4.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo5T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*4), "5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo55T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*4.5), "5.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        Fibo6T := label.new(fTextPos, HfiboVal + ((HfiboVal-LfiboVal)*5), "6", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+
+        FiboM05T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*0.5), "-0.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM1T := label.new(fTextPos, LfiboVal - (HfiboVal-LfiboVal), "-1", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM15T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*1.5), "-1.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM2T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*2), "-2", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM25T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*2.5), "-2.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM3T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*3), "-3", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM35T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*3.5), "-3.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM4T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*4), "-4", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM45T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*4.5), "-4.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM5T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*5), "-5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM55T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*5.5), "-5.5", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+        FiboM6T := label.new(fTextPos, LfiboVal - ((HfiboVal-LfiboVal)*6), "-6", xloc = fTextXloc, style = label.style_none,textcolor=FiboColor)
+    
+    
+    DRperc = math.round((HH-LL)/(LL/100), 3)
+    iDRperc = math.round((HHidr-LLidr)/(LLidr/100), 3)
+    if DRopen > DRclose
+        DRdirection := "DOWN"
+        DRperc := math.round((HH-LL)/(HH/100), 3)
+        iDRperc := math.round((HHidr-LLidr)/(HHidr/100), 3)
+
+    if BoxColorDir
+        if DRdirection == "UP"
+            BoxColor := color.rgb(51, 148, 54, 75)
+        else
+            BoxColor := color.rgb(255, 66, 66, 75)
+    if BoxiDR
+        drBox := box.new(bar_index[FirstBar],HHidr,bar_index,LLidr,border_color = na,bgcolor = BoxColor)
+        
+    else
+        drBox := box.new(bar_index[FirstBar],HH,bar_index,LL,border_color = na,bgcolor = BoxColor)
+        
+
+    if showPanelInfo
+        if showPanelRange
+            table.cell(t, 0, 0, DRrangeL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size,tooltip = "DR range")
+            table.cell(t, 1, 0, str.tostring(DRperc) + " %", bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+        if showPanelRange
+            table.cell(t, 0, 1, iDRrangeL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 1, str.tostring(iDRperc) + " %", bgcolor = PanelColor2, text_size = panel_size, text_color =TextColor2)
+        if showPanelDir
+            table.cell(t, 0, 2, DRdirectionL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 2, DRdirection, bgcolor = PanelColor2, text_size = panel_size, text_color = DRdirection== "UP" ? color.rgb(51, 148, 54) : #ff0000)
+        if showPanelOC
+            table.cell(t, 0, 3, DRcloseL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 3, str.tostring(math.round(DRclose, 4)), bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+            table.cell(t, 0, 4, DRopenL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 4, str.tostring(math.round(DRopen, 4)), bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+        if showPanelHL
+            table.cell(t, 0, 5, DRhighL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 5, str.tostring(math.round(HH, 4)), bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+            table.cell(t, 0, 6, DRlowL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 6, str.tostring(math.round(LL, 4)), bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+        if showPanelHL
+            table.cell(t, 0, 7, iDRhighL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 7, str.tostring(math.round(HHidr, 4)), bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+            table.cell(t, 0, 8, iDRlowL, bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+            table.cell(t, 1, 8, str.tostring(math.round(LLidr, 4)), bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+
+    if DRAlert
+        drMessage = DRhighText + ": " + str.tostring(math.round(HH, 4)) + " ; " + iDRhighText + ": " + str.tostring(math.round(HHidr, 4)) + " ; " + DRlowText + ": " + str.tostring(math.round(LL, 4)) + " ; " + iDRlowText + ": " + str.tostring(math.round(LLidr, 4)) + " ; " + DRrangeL + ": " + str.tostring(DRperc) + " % ; " + iDRrangeL + ": " + str.tostring(iDRperc) + " % ; " + DRopenL + ": " + str.tostring(math.round(DRopen, 4)) + " ; " + DRcloseL + ": " + str.tostring(math.round(DRclose, 4))
+        if FiboAlerts
+            drMessage := drMessage + " ; 0.5 Fibo level: " +  str.tostring((HfiboVal+LfiboVal)/2) + " ; Fibo levels UP: " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*0.5)) + " ; " + str.tostring(HfiboVal + (HfiboVal-LfiboVal)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*1.5)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*2)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*2.5)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*3)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*3.5)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*4)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*4.5)) + " ; " + str.tostring(HfiboVal + ((HfiboVal-LfiboVal)*5)) + " ; Fibo levels DOWN: " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*0.5)) + " ; " + str.tostring(LfiboVal - (HfiboVal-LfiboVal)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*1.5)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*2)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*2.5)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*3)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*3.5)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*4)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*4.5)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*5)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*5.5)) + " ; " + str.tostring(LfiboVal - ((HfiboVal-LfiboVal)*6))
+        dr_alert = drMessage
+        alert(dr_alert,alert.freq_once_per_bar_close)
+   
+
+//Clear
+if endBar
+    label.delete(StartingSessionLabel[1])
+if startBar
+    //box.delete(drBox[1])
+    eDRhighE := line.copy(DRhighE[1])
+    eDRlowE := line.copy(DRlowE[1])
+    eIDRhighE := line.copy(IDRhighE[1])
+    eIDRlowE := line.copy(IDRlowE[1])
+    line.set_extend(eDRhighE,extend.none)
+    line.set_extend(eDRlowE,extend.none)
+    line.set_extend(eIDRhighE,extend.none)
+    line.set_extend(eIDRlowE,extend.none)
+    line.set_x2(eDRhighE,bar_index[1])
+    line.set_x2(eDRlowE,bar_index[1])
+    line.set_x2(eIDRhighE,bar_index[1])
+    line.set_x2(eIDRlowE,bar_index[1])
+
+    line.delete(DRhighE[1])
+    line.delete(DRlowE[1])
+    line.delete(IDRhighE[1])
+    line.delete(IDRlowE[1])
+    
+    line.delete(Fibo05[1])
+    line.delete(Fibo15[1])
+    line.delete(Fibo2[1])
+    line.delete(Fibo25[1])
+    line.delete(Fibo3[1])
+    line.delete(Fibo35[1])
+    line.delete(Fibo4[1])
+    line.delete(Fibo45[1])
+    line.delete(Fibo5[1])
+    line.delete(Fibo55[1])
+    line.delete(Fibo6[1])
+    line.delete(FiboM05[1])
+    line.delete(FiboM1[1])
+    line.delete(FiboM15[1])
+    line.delete(FiboM2[1])
+    line.delete(FiboM25[1])
+    line.delete(FiboM3[1])
+    line.delete(FiboM35[1])
+    line.delete(FiboM4[1])
+    line.delete(FiboM45[1])
+    line.delete(FiboM5[1])
+    line.delete(FiboM55[1])
+    line.delete(FiboM6[1])
+    label.delete(Fibo05T[1])
+    label.delete(Fibo15T[1])
+    label.delete(Fibo2T[1])
+    label.delete(Fibo25T[1])
+    label.delete(Fibo3T[1])
+    label.delete(Fibo35T[1])
+    label.delete(Fibo4T[1])
+    label.delete(Fibo45T[1])
+    label.delete(Fibo5T[1])
+    label.delete(Fibo55T[1])
+    label.delete(Fibo6T[1])
+    label.delete(FiboM05T[1])
+    label.delete(FiboM1T[1])
+    label.delete(FiboM15T[1])
+    label.delete(FiboM2T[1])
+    label.delete(FiboM25T[1])
+    label.delete(FiboM3T[1])
+    label.delete(FiboM35T[1])
+    label.delete(FiboM4T[1])
+    label.delete(FiboM45T[1])
+    label.delete(FiboM5T[1])
+    label.delete(FiboM55T[1])
+    label.delete(FiboM6T[1])
+
+//Breaches check
+UPLabel = false
+DOWNLabel = false
+BreachBackUP = false
+BreachBackDown = false
+BreachesUP = 0
+BreachesDown = 0
+BreachUPYes = "NO"
+BreachDownYes = "NO"
+if barstate.isconfirmed and nySession == false and nyaSession == false and nyeSession == false
+    HHcheck = high[LastBar-1]
+    LLcheck = low[LastBar-1]
+    HHidrcheck = close[LastBar-1]
+    LLidrcheck = open[LastBar-1]
+    if close[LastBar-1] > open[LastBar-1]
+        HHidrcheck := close[LastBar-1]
+        LLidrcheck := open[LastBar-1]
+    else
+        HHidrcheck := open[LastBar-1]
+        LLidrcheck := close[LastBar-1]
+    
+    for i = 0 to FirstBar-LastBar
+        if high[LastBar+i] > HHcheck
+            HHcheck := high[LastBar+i]
+        if low[LastBar+i] < LLcheck
+            LLcheck := low[LastBar+i]
+        if close[LastBar+i] > open[LastBar+i] and close[LastBar+i] > HHidrcheck
+            HHidrcheck := close[LastBar+i]
+        if close[LastBar+i] < open[LastBar+i] and open[LastBar+i] > HHidrcheck
+            HHidrcheck := open[LastBar+i]
+        if close[LastBar+i] > open[LastBar+i] and open[LastBar+i] < LLidrcheck
+            LLidrcheck := open[LastBar+i]
+        if close[LastBar+i] < open[LastBar+i] and close[LastBar+i] < LLidrcheck
+            LLidrcheck := close[LastBar+i]
+        
+    if UseWick
+        if high > (HHcheck + ((HHcheck/100)*BreachThreshold)) and high[1] <= HHcheck
+            UPLabel := true
+        if low < (LLcheck - ((LLcheck/100)*BreachThreshold)) and low[1] >= LLcheck
+            DOWNLabel := true
+    else
+        if close > (HHcheck + ((HHcheck/100)*BreachThreshold)) and close[1] <= HHcheck
+            UPLabel := true
+        if close < (LLcheck - ((LLcheck/100)*BreachThreshold)) and close[1] >= LLcheck
+            DOWNLabel := true
+       
+    for i = 0 to LastBar
+        if UseWick
+            if high[i] > (HHcheck + ((HHcheck/100)*BreachThreshold)) and high[i+1] <= HHcheck
+                BreachesUP := BreachesUP+1
+            if low[i] < (LLcheck - ((LLcheck/100)*BreachThreshold)) and low[i+1] >= LLcheck
+                BreachesDown := BreachesDown+1
+        else
+            if close[i] > (HHcheck + ((HHcheck/100)*BreachThreshold)) and close[i+1] <= HHcheck
+                BreachesUP := BreachesUP+1
+            if close[i] < (LLcheck - ((LLcheck/100)*BreachThreshold)) and close[i+1] >= LLcheck
+                BreachesDown := BreachesDown+1       
+
+    if close < (HHcheck) and close[1] > HHcheck
+        BreachBackUP := true
+    if close > (LLcheck) and close[1] < LLcheck
+        BreachBackDown := true
+
+plotshape(UPLabel and showBreaches ? close : na, title="Breach UP Label", text="", style=shape.triangleup, location=location.belowbar, color=BreachLabelColor1, textcolor=color.white)   
+plotshape(DOWNLabel and showBreaches ? close : na, title="Breach DOWN Label", text="", style=shape.triangledown, location=location.abovebar, color=BreachLabelColor2, textcolor=color.white)   
+if showPanelInfo and barstate.isconfirmed and showPanelBreach
+    if BreachesUP > 0
+        BreachUPYes := "YES"
+    if BreachesDown > 0
+        BreachDownYes := "YES"
+    table.cell(t, 0, 9, "Breaches Up", bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+    table.cell(t, 0, 10, "Breaches Down", bgcolor = PanelColor1, text_color = TextColor1, text_size = panel_size)
+    table.cell(t, 1, 9, BreachUPYes + "(" + str.tostring(BreachesUP) + ")", bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+    table.cell(t, 1, 10, BreachDownYes + "(" + str.tostring(BreachesDown) + ")", bgcolor = PanelColor2, text_size = panel_size, text_color = TextColor2)
+
+//---------Send breach alert to TV alarm sub-system-----------------------------
+BreachMessage = "Breach!!  Close Price: " + str.tostring(close)
+BreachBackMessage = "Breach back!!  Close Price: " + str.tostring(close)
+if UPLabel and BreachAlert
+    BreachMessage := "Breach Up signal!! Close Price: " + str.tostring(close)
+    up_alert = BreachMessage
+    alert(up_alert,alert.freq_once_per_bar_close)
+if DOWNLabel and BreachAlert
+    BreachMessage := "Breach Down signal!! Close Price: " + str.tostring(close)
+    down_alert = BreachMessage
+    alert(down_alert,alert.freq_once_per_bar_close)
+if BreachBackUP and BreachBackAlert
+    BreachBackMessage := "Breach back from Up signal!! Close Price: " + str.tostring(close)
+    upb_alert = BreachBackMessage
+    alert(upb_alert,alert.freq_once_per_bar_close)
+if BreachBackDown and BreachBackAlert
+    BreachBackMessage := "Breach back from Down signal!! Close Price: " + str.tostring(close)
+    upd_alert = BreachBackMessage
+    alert(upd_alert,alert.freq_once_per_bar_close)
+//------------------------------------------------------------------------------
+
+
+//ADDITIONAL STUFF BY LuxAlgo
+// This work is licensed under a Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) https://creativecommons.org/licenses/by-nc-sa/4.0/
+// © LuxAlgo
+//All credits goes to LuxAlgo
+
+//------------OB----------------------------------------------------------------
+//Settings
+//-----------------------------------------------------------------------------{
+showLAOB = input(false,"Show order block finder by LuxAlgo",group = "ADDITIOANL - Order Block Finder by LuxAlgo")
+lalength = input.int(5, 'Volume Pivot Length', minval = 1)
+labull_ext_last = input.int(3, 'Bullish OB ', minval = 1, inline = 'bull')
+labg_bull_css = input.color(color.new(#64C4AC, 85), '', inline = 'bull')
+labull_css = input.color(#5db49e, '', inline = 'bull')
+labull_avg_css = input.color(color.new(#64C4AC, 15), '', inline = 'bull')
+labear_ext_last = input.int(3, 'Bearish OB', minval = 1, inline = 'bear')
+labg_bear_css = input.color(color.new(#506CD3, 85), '', inline = 'bear')
+labear_css = input.color(#4760bb, '', inline = 'bear')
+labear_avg_css = input.color(color.new(#506CD3, 15), '', inline = 'bear')
+laline_style = input.string('⎯⎯⎯', 'Average Line Style', options = ['⎯⎯⎯', '----', '····'])
+laline_width = input.int(1, 'Average Line Width', minval = 1)
+lamitigation = input.string('Wick', 'Mitigation Methods', options = ['Wick', 'Close'])
+
+//-----------------------------------------------------------------------------}
+//Functions 
+//-----------------------------------------------------------------------------{
+//Line Style function
+get_line_style(style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----' => line.style_dashed
+        '····' => line.style_dotted
+
+//Function to get order block coordinates
+get_coordinates(condition, top, btm, ob_val)=>
+    var ob_top  = array.new_float(0)
+    var ob_btm  = array.new_float(0)
+    var ob_avg  = array.new_float(0)
+    var ob_left = array.new_int(0)
+
+    float ob = na
+
+    //Append coordinates to arrays
+    if condition
+        avg = math.avg(top, btm)
+        
+        array.unshift(ob_top, top)
+        array.unshift(ob_btm, btm)
+        array.unshift(ob_avg, avg)
+        array.unshift(ob_left, time[lalength])
+        
+        ob := ob_val
+    
+    [ob_top, ob_btm, ob_avg, ob_left, ob]
+
+//Function to remove mitigated order blocks from coordinate arrays
+remove_mitigated(ob_top, ob_btm, ob_left, ob_avg, target, bull)=>
+    mitigated = false
+    target_array = bull ? ob_btm : ob_top
+
+    for element in target_array
+        obidx = array.indexof(target_array, element)
+
+        if (bull ? target < element : target > element)
+            mitigated := true
+
+            array.remove(ob_top, obidx)
+            array.remove(ob_btm, obidx)
+            array.remove(ob_avg, obidx)
+            array.remove(ob_left, obidx)
+    
+    mitigated
+
+//Function to set order blocks
+set_order_blocks(ob_top, ob_btm, ob_left, ob_avg, ext_last, bg_css, border_css, lvl_css)=>
+    var ob_box = array.new_box(0)
+    var ob_lvl = array.new_line(0)
+
+    //Fill arrays with boxes/lines
+    if barstate.isfirst and showLAOB
+        for i = 0 to ext_last-1
+            array.unshift(ob_box, box.new(na,na,na,na, xloc = xloc.bar_time, extend= extend.right, bgcolor = bg_css, border_color = color.new(border_css, 70)))
+            array.unshift(ob_lvl, line.new(na,na,na,na, xloc = xloc.bar_time, extend = extend.right, color = lvl_css, style = get_line_style(laline_style), width = laline_width))
+
+    //Set order blocks
+    if barstate.islast and showLAOB
+        if array.size(ob_top) > 0
+            for i = 0 to math.min(ext_last-1, array.size(ob_top)-1)
+                get_box = array.get(ob_box, i)
+                get_lvl = array.get(ob_lvl, i)
+
+                box.set_lefttop(get_box, array.get(ob_left, i), array.get(ob_top, i))
+                box.set_rightbottom(get_box, array.get(ob_left, i), array.get(ob_btm, i))
+
+                line.set_xy1(get_lvl, array.get(ob_left, i), array.get(ob_avg, i))
+                line.set_xy2(get_lvl, array.get(ob_left, i)+1, array.get(ob_avg, i))
+
+
+//-----------------------------------------------------------------------------}
+//Global elements 
+//-----------------------------------------------------------------------------{
+var os = 0
+var target_bull = 0.
+var target_bear = 0.
+
+n = bar_index
+upper = ta.highest(lalength)
+lower = ta.lowest(lalength)
+
+if lamitigation == 'Close'
+    target_bull := ta.lowest(close, lalength)
+    target_bear := ta.highest(close, lalength)
+else
+    target_bull := lower
+    target_bear := upper
+
+os := high[lalength] > upper ? 0 : low[lalength] < lower ? 1 : os[1]
+
+phv = ta.pivothigh(volume, lalength, lalength)
+
+//-----------------------------------------------------------------------------}
+//Get bullish/bearish order blocks coordinates 
+//-----------------------------------------------------------------------------{
+[bull_top, bull_btm, bull_avg, bull_left, bull_ob] = get_coordinates(phv and os == 1, hl2[lalength], low[lalength], low[lalength])
+
+[bear_top, bear_btm, bear_avg, bear_left, bear_ob] = get_coordinates(phv and os == 0, high[lalength], hl2[lalength], high[lalength])
+
+//-----------------------------------------------------------------------------}
+//Remove mitigated order blocks
+//-----------------------------------------------------------------------------{
+mitigated_bull = remove_mitigated(bull_top, bull_btm, bull_left, bull_avg, target_bull, true)
+
+mitigated_bear = remove_mitigated(bear_top, bear_btm, bear_left, bear_avg, target_bear, false)
+
+//-----------------------------------------------------------------------------}
+//Display order blocks
+//-----------------------------------------------------------------------------{
+//Set bullish order blocks
+set_order_blocks(bull_top, bull_btm, bull_left, bull_avg, labull_ext_last, labg_bull_css, labull_css, labull_avg_css)
+
+//Set bearish order blocks
+set_order_blocks(bear_top, bear_btm, bear_left, bear_avg, labear_ext_last, labg_bear_css, labear_css, labear_avg_css)
+        
+//Show detected order blocks
+plot(showLAOB ? bull_ob : na, 'Bull OB', labull_css, 2, plot.style_linebr, offset = -lalength, display = display.none)
+plot(showLAOB ? bear_ob : na, 'Bear OB', labear_css, 2, plot.style_linebr, offset = -lalength, display = display.none)
+//------------------------------------------------------------------------------
+
+//------------Fair Value Gap (FVG)----------------------------------------------
+// atr settings
+ShowFVG = input(false,"Show FVG", group='ADDITIOANL - Fair Value Gap (FVG)')
+fvg_atrLength = input.int(28, 'ATR MA length', group = "General settings")
+fvg_atrMultiplier = input.float(1.5, 'ATR multiplier', group = "General settings")
+
+// box settings
+fvg_boxCount = input.int(5, 'Show last Boxes', minval=1, group='box')
+fvgupBoxColor = input.color(color.rgb(76, 175, 79, 70), 'Up color', group='box')
+fvgdownBoxColor = input.color(color.rgb(255, 82, 82, 70), 'Down color', group='box')
+fvg_shrinkBoxes = input(true, 'Shrink touched part of boxes', group='box')
+extendFVGboxes = input(true, "Extend boxes", group='box',inline = "extend")
+fvgNumbOfBars = input.int(20,"bars:", group='box', inline = "extend")
+showFVGlabel = input(true,"Show labels", group = "box", inline = "label")
+sizeFVGlabel = input.string("Normal",", size:", options = ["Normal","Small","Large","Tiny","Auto"], group = "box", inline = "label")
+
+fvgLsize = size.normal
+if sizeFVGlabel == "Small"
+    fvgLsize := size.small
+if sizeFVGlabel == "Large"
+    fvgLsize := size.large
+if sizeFVGlabel == "Tiny"
+    fvgLsize := size.tiny
+if sizeFVGlabel == "Auto"
+    fvgLsize := size.auto
+
+var fvgboxArray = array.new_box()
+
+fvg_isUpCandle(_index) =>
+    open[_index] <= close[_index]
+
+fvg_isFairValueGap() =>
+    bool fvgbearCondition = close[3] <= high[2] and close[1] <= close[2] and high < low[2]
+    bool fvgbullCondition = close[3] >= low[2] and close[1] >= close[2] and low > high[2]
+    
+    fvgpriceDiff = high[1] - low[1]
+    fvgatrValue = ta.atr(fvg_atrLength)
+    bool fvgmiddleCandleVolatilityCondition = fvgpriceDiff > fvgatrValue * fvg_atrMultiplier
+    
+    bool fvgisUpCandle = fvg_isUpCandle(1)
+    bool fvgisGapClosed = fvgisUpCandle ? high[2] >= low : low[2] <= high
+    [fvgisGapClosed, fvgbearCondition, fvgbullCondition, fvgmiddleCandleVolatilityCondition]
+
+fvg_extendArray(_boxArray) =>
+    if array.size(_boxArray) > 0 and ShowFVG
+        for i = array.size(_boxArray) - 1 to 0 by 1
+            boxToExtend = array.get(_boxArray, i)
+
+            fvgbottom = box.get_bottom(boxToExtend)
+            fvgtop = box.get_top(boxToExtend)
+            fvgright = box.get_right(boxToExtend)
+            box.set_right(array.get(_boxArray, i), extendFVGboxes ? bar_index + fvgNumbOfBars : bar_index)
+            if showFVGlabel
+                box.set_text(array.get(_boxArray, i),"FVG")
+                box.set_text_color(array.get(_boxArray, i),color.silver)
+                box.set_text_halign(array.get(_boxArray, i),text.align_right)
+                box.set_text_size(array.get(_boxArray, i),fvgLsize)
+            
+            fvghasClosed = (open <= fvgbottom and high > fvgbottom and high >= fvgtop or open >= fvgtop and low < fvgtop and low <= fvgbottom)
+
+            if fvg_shrinkBoxes and open >= fvgtop and low < fvgtop and low > fvgbottom and ShowFVG
+                box.set_top(array.get(_boxArray, i), low)
+
+            if fvg_shrinkBoxes and open <= fvgbottom and high > fvgbottom and high < fvgtop and ShowFVG
+                box.set_bottom(array.get(_boxArray, i), high)
+                
+            if fvg_shrinkBoxes and fvghasClosed and ShowFVG
+                box.delete(array.get(_boxArray, i))
+                array.remove(fvgboxArray, i)
+
+[fvgisGapClosed, fvgbearCondition, fvgbullCondition, fvgmiddleCandleVolatilityCondition] = fvg_isFairValueGap()
+
+bool fvgisFairValueGap = false
+fvgisFairValueGap := (fvgbearCondition or fvgbullCondition) and not fvgisGapClosed and fvgmiddleCandleVolatilityCondition and not fvgisFairValueGap[1]
+
+if fvgisFairValueGap and ShowFVG
+    fvgisUpCandle = fvg_isUpCandle(1)
+    fvgtop = fvgisUpCandle ? low : low[2]
+    fvgbottom = fvgisUpCandle ? high[2] : high
+    fvgBox = box.new(bar_index[1], fvgtop, bar_index, fvgbottom, bgcolor=fvgisUpCandle ? fvgupBoxColor : fvgdownBoxColor, border_style=line.style_dashed, border_color=fvgisUpCandle ? fvgupBoxColor : fvgdownBoxColor, xloc=xloc.bar_index)
+    
+    if array.size(fvgboxArray) >= fvg_boxCount
+        box.delete(array.shift(fvgboxArray))
+    array.push(fvgboxArray, fvgBox)
+
+fvg_extendArray(fvgboxArray)
+//----------------------------------------------------------------------------------------------------
